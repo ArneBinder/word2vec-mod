@@ -77,9 +77,9 @@ def read_data_csv(filename, max_rows=100):
         for row in reader:
             if(count >= max_rows):
                 break
-
+            print('process article:', row['article-id'], '...')
             content = row['content'].decode('utf-8')
-            print(content)
+
             parsedData = parser(content)
 
             for i, token in enumerate(parsedData):
@@ -88,7 +88,7 @@ def read_data_csv(filename, max_rows=100):
             count +=1
     return lemmata
 
-words_mod = read_data_csv('/media/arne/E834D0A734D07A50/ML/data/documents_utf8_filtered_20pageviews.csv', 2)
+words_mod = read_data_csv('/media/arne/E834D0A734D07A50/ML/data/documents_utf8_filtered_20pageviews.csv', 300)
 print('token count:', len(words_mod))
 
 print('data preprocessing finished')
@@ -96,7 +96,8 @@ print('data preprocessing finished')
 # exit here
 exit()
 
-words = read_data(filename)
+#words = read_data(filename)
+words = words_mod
 print('Data size %d' % len(words))
 
 # Build the dictionary and replace rare words with UNK token.
