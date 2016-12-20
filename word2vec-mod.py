@@ -94,7 +94,7 @@ print('token count:', len(words_mod))
 print('data preprocessing finished')
 
 # exit here
-exit()
+# exit()
 
 #words = read_data(filename)
 words = words_mod
@@ -272,8 +272,8 @@ with tf.Session(graph=graph) as session:
 
 
 
-with open('model.txt', 'w') as outfile:
-    json.dump(final_embeddings, outfile)
+#with open('model.txt', 'w') as outfile:
+#    json.dump(final_embeddings, outfile)
 # In[10]:
 
 num_points = 400
