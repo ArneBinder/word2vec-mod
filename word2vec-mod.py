@@ -31,6 +31,9 @@ import json
 import csv
 from sys import exit
 from spacy.en import English
+import sys
+
+csv.field_size_limit(sys.maxsize)
 
 # Download the data from the source website if necessary.
 
@@ -77,7 +80,8 @@ def read_data_csv(filename, max_rows=100):
         for row in reader:
             if(count >= max_rows):
                 break
-            print('process article:', row['article-id'], '...')
+            if(count % (max_rows / 100) == 0):
+                print('process article:', row['article-id'], '... ', count / (max_rows / 100), '%')
             content = row['content'].decode('utf-8')
 
             parsedData = parser(content)
@@ -92,7 +96,7 @@ def read_data_csv(filename, max_rows=100):
 
 
 #words = read_data(maybe_download('text8.zip', 31344016))
-words = read_data_csv('/media/arne/E834D0A734D07A50/Users/arbi01/ML/data/documents_utf8_filtered_20pageviews.csv', 300)
+words = read_data_csv('/media/arne/E834D0A734D07A50/Users/arbi01/ML/data/documents_utf8_filtered_20pageviews.csv', 3000)
 print('data preprocessing finished')
 print('Data size %d' % len(words))
 
