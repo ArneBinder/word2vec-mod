@@ -88,7 +88,7 @@ def read_data_csv(filename, max_rows=100):
             count +=1
     return lemmata
 
-words_mod = read_data_csv('/media/arne/E834D0A734D07A50/ML/data/documents_utf8_filtered_20pageviews.csv', 300)
+words_mod = read_data_csv('/media/arne/E834D0A734D07A50/Users/arbi01/ML/data/documents_utf8_filtered_20pageviews.csv', 300)
 #print('token count:', len(words_mod))
 
 print('data preprocessing finished')
@@ -131,7 +131,9 @@ vocabulary_size = 50000
 data, count, dictionary, reverse_dictionary = build_dataset(words, vocabulary_size)
 
 # reset vocabulary size if it was not reached
-vocabulary_size = len(reverse_dictionary)
+if(vocabulary_size > len(reverse_dictionary)):
+    print('reset vocabulary_size=', vocabulary_size, ' to ', len(reverse_dictionary))
+    vocabulary_size = len(reverse_dictionary)
 
 print('Most common words (+UNK)', count[:5])
 print('Sample data', data[:10])
@@ -246,9 +248,11 @@ with graph.as_default(), tf.device('/cpu:0'):
 # In[9]:
 
 num_steps = 100001
+#num_steps = 20001
 
 with tf.Session(graph=graph) as session:
-    tf.initialize_all_variables().run()
+    #tf.initialize_all_variables().run() # for older versions of Tensorflow
+    tf.global_variables_initializer().run()
     print('Initialized')
     average_loss = 0
     for step in range(num_steps):
