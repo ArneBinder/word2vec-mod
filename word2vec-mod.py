@@ -88,7 +88,7 @@ def read_data_csv(filename, max_rows=100):
             count +=1
     return lemmata
 
-words_mod = read_data_csv('/media/arne/E834D0A734D07A50/Users/arbi01/ML/data/documents_utf8_filtered_20pageviews.csv', 300)
+words_mod = read_data_csv('/media/arne/E834D0A734D07A50/Users/arbi01/ML/data/documents_utf8_filtered_20pageviews.csv', 30)
 #print('token count:', len(words_mod))
 
 print('data preprocessing finished')
@@ -247,8 +247,8 @@ with graph.as_default(), tf.device('/cpu:0'):
 
 # In[9]:
 
-num_steps = 100001
-#num_steps = 20001
+#num_steps = 100001
+num_steps = 10001
 
 with tf.Session(graph=graph) as session:
     #tf.initialize_all_variables().run() # for older versions of Tensorflow
@@ -282,7 +282,17 @@ with tf.Session(graph=graph) as session:
     final_embeddings = normalized_embeddings.eval()
 
 
+def embeddings_to_tsv(embeddings, path):
+    with open(path,'w') as f:
+        size, dims = embeddings.shape
+        f.write('{} {}'.format(size, dims) + '\n')
+        i = 0
+        for vec in embeddings:
+            f.write(reverse_dictionary[i].encode('utf8') + '\t' + '\t'.join(str(x) for x in vec) + '\n')
+            i += 1
+        print('vec count:', i)
 
+embeddings_to_tsv(final_embeddings, 'out.txt')
 
 #with open('model.txt', 'w') as outfile:
 #    json.dump(final_embeddings, outfile)
