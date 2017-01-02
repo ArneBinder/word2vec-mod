@@ -53,7 +53,7 @@ def maybe_download(filename, expected_bytes):
     return filename
 
 
-# filename = maybe_download('text8.zip', 31344016)
+#filename = maybe_download('text8.zip', 31344016)
 
 
 # Read the data into a string.
@@ -88,16 +88,12 @@ def read_data_csv(filename, max_rows=100):
             count +=1
     return lemmata
 
-words_mod = read_data_csv('/media/arne/E834D0A734D07A50/Users/arbi01/ML/data/documents_utf8_filtered_20pageviews.csv', 30)
 #print('token count:', len(words_mod))
 
+
+#words = read_data(maybe_download('text8.zip', 31344016))
+words = read_data_csv('/media/arne/E834D0A734D07A50/Users/arbi01/ML/data/documents_utf8_filtered_20pageviews.csv', 300)
 print('data preprocessing finished')
-
-# exit here
-# exit()
-
-#words = read_data(filename)
-words = words_mod
 print('Data size %d' % len(words))
 
 # Build the dictionary and replace rare words with UNK token.
@@ -248,7 +244,7 @@ with graph.as_default(), tf.device('/cpu:0'):
 # In[9]:
 
 #num_steps = 100001
-num_steps = 10001
+num_steps = 100001
 
 with tf.Session(graph=graph) as session:
     #tf.initialize_all_variables().run() # for older versions of Tensorflow
