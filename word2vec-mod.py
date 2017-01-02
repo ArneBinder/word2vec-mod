@@ -89,7 +89,7 @@ def read_data_csv(filename, max_rows=100):
     return lemmata
 
 words_mod = read_data_csv('/media/arne/E834D0A734D07A50/ML/data/documents_utf8_filtered_20pageviews.csv', 300)
-print('token count:', len(words_mod))
+#print('token count:', len(words_mod))
 
 print('data preprocessing finished')
 
@@ -104,10 +104,9 @@ print('Data size %d' % len(words))
 
 # In[5]:
 
-vocabulary_size = 50000
 
 
-def build_dataset(words):
+def build_dataset(words, vocabulary_size):
     count = [['UNK', -1]]
     count.extend(collections.Counter(words).most_common(vocabulary_size - 1))
     dictionary = dict()
@@ -127,7 +126,13 @@ def build_dataset(words):
     return data, count, dictionary, reverse_dictionary
 
 
-data, count, dictionary, reverse_dictionary = build_dataset(words)
+# initila vocabulary size
+vocabulary_size = 50000
+data, count, dictionary, reverse_dictionary = build_dataset(words, vocabulary_size)
+
+# reset vocabulary size if it was not reached
+vocabulary_size = len(reverse_dictionary)
+
 print('Most common words (+UNK)', count[:5])
 print('Sample data', data[:10])
 del words  # Hint to reduce memory.
@@ -138,6 +143,9 @@ with open('data.txt', 'w') as outfile:
 
 with open('reverse_dictionary.txt', 'w') as outfile:
     json.dump(reverse_dictionary, outfile)
+
+with open('count.txt', 'w') as outfile:
+    json.dump(count, outfile)
 # Function to generate a training batch for the skip-gram model.
 
 # In[6]:
