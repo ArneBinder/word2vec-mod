@@ -33,6 +33,7 @@ from sys import exit
 from spacy.en import English
 import sys
 import time
+import datetime
 from functools import wraps
 
 csv.field_size_limit(sys.maxsize)
@@ -85,6 +86,22 @@ def read_data(filename):
         data = tf.compat.as_str(f.read(f.namelist()[0])).split()
     return data
 
+#pos_dict = dict()
+pos_blacklist = [u'SPACE', u'PUNCT', u'NUM',u'SPACE']
+def valid_token(token):
+    #pos_samples = pos_dict.get(token.pos_, [])
+    #if(token.lemma_ not in pos_samples):
+    #    pos_dict[token.pos_] = (pos_samples + [token.lemma_])[-5:]
+
+    # remove not-a-word tokens
+    if(token.pos_ in pos_blacklist):
+        return False
+
+    # remove entities
+    if(token.ent_type != 0):
+        return False
+    return True
+
 
 # to read data presented here: https://blog.lateral.io/2015/06/the-unknown-perils-of-mining-wikipedia/
 @fn_timer
@@ -99,13 +116,16 @@ def read_data_csv(filename, max_rows=100):
             if(count >= max_rows):
                 break
             if((count * 100) % max_rows == 0):
+                #sys.stdout.write("progress: %d%%   \r" % (count * 100 / max_rows))
+                #sys.stdout.flush()
                 print('parse article:', row['article-id'], '... ', count * 100 / max_rows, '%')
             content = row['content'].decode('utf-8')
 
             parsedData = parser(content)
 
             for i, token in enumerate(parsedData):
-                lemmata.append(token.lemma_)
+                if(valid_token(token)):
+                    lemmata.append(token.lemma_)
 
             count +=1
     return lemmata
@@ -117,6 +137,12 @@ def read_data_csv(filename, max_rows=100):
 words = read_data_csv('/media/arne/E834D0A734D07A50/Users/arbi01/ML/data/documents_utf8_filtered_20pageviews.csv', 10000)
 print('data preprocessing finished')
 print('Data size %d' % len(words))
+
+#with open('pos_dict.txt', 'w') as outfile:
+#    json.dump(pos_dict, outfile)
+
+
+#exit()
 
 # Build the dictionary and replace rare words with UNK token.
 
@@ -145,7 +171,7 @@ def build_dataset(words, vocabulary_size):
 
 
 # initila vocabulary size
-vocabulary_size = 1000000
+vocabulary_size = 500000
 data, count, dictionary, reverse_dictionary = build_dataset(words, vocabulary_size)
 
 # reset vocabulary size if it was not reached
@@ -211,6 +237,8 @@ for num_skips, skip_window in [(2, 1), (4, 2)]:
 
 # In[7]:
 
+logdir = 'summaries/train_{:%Y-%m-%d_%H:%M:%S}'.format(datetime.datetime.now())
+
 batch_size = 128
 embedding_size = 300  # Dimension of the embedding vector.
 skip_window = 1  # How many words to consider left and right.
@@ -232,20 +260,17 @@ with graph.as_default(), tf.device('/cpu:0'):
     valid_dataset = tf.constant(valid_examples, dtype=tf.int32)
 
     # Variables.
-    embeddings = tf.Variable(
-        tf.random_uniform([vocabulary_size, embedding_size], -1.0, 1.0))
-    softmax_weights = tf.Variable(
-        tf.truncated_normal([vocabulary_size, embedding_size],
-                            stddev=1.0 / math.sqrt(embedding_size)))
-    softmax_biases = tf.Variable(tf.zeros([vocabulary_size]))
+    embeddings = tf.Variable(tf.random_uniform([vocabulary_size, embedding_size], -1.0, 1.0), name='embeddings')
+    softmax_weights = tf.Variable(tf.truncated_normal([vocabulary_size, embedding_size],
+                            stddev=1.0 / math.sqrt(embedding_size)), name='weights')
+    softmax_biases = tf.Variable(tf.zeros([vocabulary_size]), name='biases')
 
     # Model.
     # Look up embeddings for inputs.
     embed = tf.nn.embedding_lookup(embeddings, train_dataset)
     # Compute the softmax loss, using a sample of the negative labels each time.
-    loss = tf.reduce_mean(
-        tf.nn.sampled_softmax_loss(softmax_weights, softmax_biases, embed,
-                                   train_labels, num_sampled, vocabulary_size))
+    loss = tf.reduce_mean(tf.nn.sampled_softmax_loss(softmax_weights, softmax_biases, embed,
+                                                     train_labels, num_sampled, vocabulary_size))
 
     # Optimizer.
     # Note: The optimizer will optimize the softmax_weights AND the embeddings.
@@ -259,35 +284,52 @@ with graph.as_default(), tf.device('/cpu:0'):
     # We use the cosine distance:
     norm = tf.sqrt(tf.reduce_sum(tf.square(embeddings), 1, keep_dims=True))
     normalized_embeddings = embeddings / norm
-    valid_embeddings = tf.nn.embedding_lookup(
-        normalized_embeddings, valid_dataset)
+    valid_embeddings = tf.nn.embedding_lookup(normalized_embeddings, valid_dataset)
     similarity = tf.matmul(valid_embeddings, tf.transpose(normalized_embeddings))
+
+
+    #summary for tensorboard
+    tf.summary.scalar('loss', loss)
+
+    # Merge all the summaries and write them out to /tmp/mnist_logs (by default)
+    merged = tf.summary.merge_all()
+    train_writer = tf.summary.FileWriter(logdir, graph, flush_secs=10)
+    #test_writer = tf.test.SummaryWriter('summaries/test')
+
+    saver = tf.train.Saver()
+
 
 # In[9]:
 @fn_timer
 def train():
     #num_steps = 100001
-    num_steps = 100001
+    num_steps = 100000
+    interval_avg = 50   # average loss every num_steps/interval_avg steps
+    interval_sav = 10   # save model every num_steps/interval_sav steps
 
     with tf.Session(graph=graph) as session:
         #tf.initialize_all_variables().run() # for older versions of Tensorflow
         tf.global_variables_initializer().run()
         print('Initialized')
         average_loss = 0
-        for step in range(num_steps):
+        for step in range(1, num_steps+1):
             batch_data, batch_labels = generate_batch(
                 batch_size, num_skips, skip_window)
             feed_dict = {train_dataset: batch_data, train_labels: batch_labels}
-            _, l = session.run([optimizer, loss], feed_dict=feed_dict)
+            _, summary, l = session.run([optimizer, merged, loss], feed_dict=feed_dict)
             average_loss += l
-            if step % 2000 == 0:
-                if step > 0:
-                    average_loss = average_loss / 2000
+            if ((step * interval_avg) % num_steps) == 0 or step == 1:
+            #if step % 2000 == 0:
+                if step > 1:
+                    average_loss = average_loss * interval_avg / num_steps
                 # The average loss is an estimate of the loss over the last 2000 batches.
                 print('Average loss at step %d: %f' % (step, average_loss))
                 average_loss = 0
+                train_writer.add_summary(summary, step)
+
             # note that this is expensive (~20% slowdown if computed every 500 steps)
-            if step % 10000 == 0:
+            # do it after ever 10% of max_steps
+            if ((step * interval_sav) % num_steps) == 0 or step == 1:
                 sim = similarity.eval()
                 for i in range(valid_size):
                     valid_word = reverse_dictionary[valid_examples[i]]
@@ -298,6 +340,10 @@ def train():
                         close_word = reverse_dictionary[nearest[k]]
                         log = '%s %s,' % (log, close_word)
                     print(log)
+
+                save_path = saver.save(session, logdir+"/model.ckpt", step)
+                print("Model saved in file: %s" % save_path)
+
         return normalized_embeddings.eval()
 
 final_embeddings = train()
