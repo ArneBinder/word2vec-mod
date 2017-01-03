@@ -32,8 +32,23 @@ import csv
 from sys import exit
 from spacy.en import English
 import sys
+import time
+from functools import wraps
 
 csv.field_size_limit(sys.maxsize)
+
+
+def fn_timer(function):
+    @wraps(function)
+    def function_timer(*args, **kwargs):
+        t0 = time.time()
+        result = function(*args, **kwargs)
+        t1 = time.time()
+        print ("Total time running %s: %s seconds" %
+               (function.func_name, str(t1-t0))
+               )
+        return result
+    return function_timer
 
 # Download the data from the source website if necessary.
 
@@ -63,6 +78,7 @@ def maybe_download(filename, expected_bytes):
 
 # In[5]:
 
+@fn_timer
 def read_data(filename):
     """Extract the first file enclosed in a zip file as a list of words"""
     with zipfile.ZipFile(filename) as f:
@@ -71,6 +87,7 @@ def read_data(filename):
 
 
 # to read data presented here: https://blog.lateral.io/2015/06/the-unknown-perils-of-mining-wikipedia/
+@fn_timer
 def read_data_csv(filename, max_rows=100):
     parser = English()
     lemmata = list()
@@ -96,7 +113,7 @@ def read_data_csv(filename, max_rows=100):
 
 
 #words = read_data(maybe_download('text8.zip', 31344016))
-words = read_data_csv('/media/arne/E834D0A734D07A50/Users/arbi01/ML/data/documents_utf8_filtered_20pageviews.csv', 3000)
+words = read_data_csv('/media/arne/E834D0A734D07A50/Users/arbi01/ML/data/documents_utf8_filtered_20pageviews.csv', 10000)
 print('data preprocessing finished')
 print('Data size %d' % len(words))
 
@@ -105,7 +122,7 @@ print('Data size %d' % len(words))
 # In[5]:
 
 
-
+@fn_timer
 def build_dataset(words, vocabulary_size):
     count = [['UNK', -1]]
     count.extend(collections.Counter(words).most_common(vocabulary_size - 1))
@@ -127,7 +144,7 @@ def build_dataset(words, vocabulary_size):
 
 
 # initila vocabulary size
-vocabulary_size = 50000
+vocabulary_size = 100000
 data, count, dictionary, reverse_dictionary = build_dataset(words, vocabulary_size)
 
 # reset vocabulary size if it was not reached
@@ -194,7 +211,7 @@ for num_skips, skip_window in [(2, 1), (4, 2)]:
 # In[7]:
 
 batch_size = 128
-embedding_size = 128  # Dimension of the embedding vector.
+embedding_size = 300  # Dimension of the embedding vector.
 skip_window = 1  # How many words to consider left and right.
 num_skips = 2  # How many times to reuse an input to generate a label.
 # We pick a random validation set to sample nearest neighbors. here we limit the
@@ -246,41 +263,43 @@ with graph.as_default(), tf.device('/cpu:0'):
     similarity = tf.matmul(valid_embeddings, tf.transpose(normalized_embeddings))
 
 # In[9]:
+@fn_timer
+def train():
+    #num_steps = 100001
+    num_steps = 100001
 
-#num_steps = 100001
-num_steps = 100001
+    with tf.Session(graph=graph) as session:
+        #tf.initialize_all_variables().run() # for older versions of Tensorflow
+        tf.global_variables_initializer().run()
+        print('Initialized')
+        average_loss = 0
+        for step in range(num_steps):
+            batch_data, batch_labels = generate_batch(
+                batch_size, num_skips, skip_window)
+            feed_dict = {train_dataset: batch_data, train_labels: batch_labels}
+            _, l = session.run([optimizer, loss], feed_dict=feed_dict)
+            average_loss += l
+            if step % 2000 == 0:
+                if step > 0:
+                    average_loss = average_loss / 2000
+                # The average loss is an estimate of the loss over the last 2000 batches.
+                print('Average loss at step %d: %f' % (step, average_loss))
+                average_loss = 0
+            # note that this is expensive (~20% slowdown if computed every 500 steps)
+            if step % 10000 == 0:
+                sim = similarity.eval()
+                for i in range(valid_size):
+                    valid_word = reverse_dictionary[valid_examples[i]]
+                    top_k = 8  # number of nearest neighbors
+                    nearest = (-sim[i, :]).argsort()[1:top_k + 1]
+                    log = 'Nearest to %s:' % valid_word
+                    for k in range(top_k):
+                        close_word = reverse_dictionary[nearest[k]]
+                        log = '%s %s,' % (log, close_word)
+                    print(log)
+        final_embeddings = normalized_embeddings.eval()
 
-with tf.Session(graph=graph) as session:
-    #tf.initialize_all_variables().run() # for older versions of Tensorflow
-    tf.global_variables_initializer().run()
-    print('Initialized')
-    average_loss = 0
-    for step in range(num_steps):
-        batch_data, batch_labels = generate_batch(
-            batch_size, num_skips, skip_window)
-        feed_dict = {train_dataset: batch_data, train_labels: batch_labels}
-        _, l = session.run([optimizer, loss], feed_dict=feed_dict)
-        average_loss += l
-        if step % 2000 == 0:
-            if step > 0:
-                average_loss = average_loss / 2000
-            # The average loss is an estimate of the loss over the last 2000 batches.
-            print('Average loss at step %d: %f' % (step, average_loss))
-            average_loss = 0
-        # note that this is expensive (~20% slowdown if computed every 500 steps)
-        if step % 10000 == 0:
-            sim = similarity.eval()
-            for i in range(valid_size):
-                valid_word = reverse_dictionary[valid_examples[i]]
-                top_k = 8  # number of nearest neighbors
-                nearest = (-sim[i, :]).argsort()[1:top_k + 1]
-                log = 'Nearest to %s:' % valid_word
-                for k in range(top_k):
-                    close_word = reverse_dictionary[nearest[k]]
-                    log = '%s %s,' % (log, close_word)
-                print(log)
-    final_embeddings = normalized_embeddings.eval()
-
+train()
 
 def embeddings_to_tsv(embeddings, path):
     with open(path,'w') as f:
