@@ -89,6 +89,7 @@ def read_data(filename):
 # to read data presented here: https://blog.lateral.io/2015/06/the-unknown-perils-of-mining-wikipedia/
 @fn_timer
 def read_data_csv(filename, max_rows=100):
+    print('parse', max_rows, 'articles')
     parser = English()
     lemmata = list()
     with open(filename, 'rb') as csvfile:
@@ -97,8 +98,8 @@ def read_data_csv(filename, max_rows=100):
         for row in reader:
             if(count >= max_rows):
                 break
-            if(count % (max_rows / 100) == 0):
-                print('process article:', row['article-id'], '... ', count / (max_rows / 100), '%')
+            if((count * 100) % max_rows == 0):
+                print('parse article:', row['article-id'], '... ', count * 100 / max_rows, '%')
             content = row['content'].decode('utf-8')
 
             parsedData = parser(content)
@@ -144,7 +145,7 @@ def build_dataset(words, vocabulary_size):
 
 
 # initila vocabulary size
-vocabulary_size = 100000
+vocabulary_size = 1000000
 data, count, dictionary, reverse_dictionary = build_dataset(words, vocabulary_size)
 
 # reset vocabulary size if it was not reached
@@ -297,10 +298,11 @@ def train():
                         close_word = reverse_dictionary[nearest[k]]
                         log = '%s %s,' % (log, close_word)
                     print(log)
-        final_embeddings = normalized_embeddings.eval()
+        return normalized_embeddings.eval()
 
-train()
+final_embeddings = train()
 
+@fn_timer
 def embeddings_to_tsv(embeddings, path):
     with open(path,'w') as f:
         size, dims = embeddings.shape
