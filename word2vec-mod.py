@@ -39,6 +39,7 @@ from functools import wraps
 csv.field_size_limit(sys.maxsize)
 
 data_dir = '/media/arne/E834D0A734D07A50/Users/arbi01/ML/data/'
+article_count = 3000
 
 
 def fn_timer(function):
@@ -93,7 +94,7 @@ ling_stats = {key: dict() for key in ['pos_', 'shape_', 'dep_', 'tag_', 'ent_typ
 
 #ling_stats['pos_'] = dict()
 # ling_stats['asda'] = dict()
-pos_blacklist = [u'SPACE', u'PUNCT', u'NUM',u'SPACE']
+pos_blacklist = [u'SPACE', u'PUNCT', u'NUM']
 def process_token(token, plain_tokens=list()):
 
     ## collect linguistic stats
@@ -104,10 +105,18 @@ def process_token(token, plain_tokens=list()):
         ind = getattr(token, attr)
         samples = types.get(ind, [])
         if(token.string not in samples):
-            types[ind] = (samples + [[token.string, token.lemma_]])[-5:]
+            #types[ind] = (samples + [token.string])[-5:]
+            types[ind].append(token.string)
 
     # remove not-a-word tokens
-    if(token.pos_ in pos_blacklist):
+    if token.pos_ in pos_blacklist:
+        return False
+
+    if token.ent_iob_ == 'B':
+        plain_tokens.append(token.ent_type_)
+        return True
+
+    if token.ent_iob_ == 'I':
         return False
 
     # remove entities
@@ -157,8 +166,10 @@ def read_data_example():
 
 
 #words = read_data(maybe_download('text8.zip', 31344016))
-words = read_data_csv(data_dir+'corpora/documents_utf8_filtered_20pageviews.csv', 3000)
+words = read_data_csv(data_dir+'corpora/documents_utf8_filtered_20pageviews.csv', article_count)
 #words = read_data_example()
+
+word_count = len(words)
 print('data preprocessing finished')
 print('Data size %d' % len(words))
 
@@ -166,7 +177,7 @@ with open('ling_stats.txt', 'w') as outfile:
     json.dump(ling_stats, outfile)
 
 
-#exit()
+exit()
 
 # Build the dictionary and replace rare words with UNK token.
 
@@ -196,6 +207,7 @@ def build_dataset(words, vocabulary_size):
 
 # initila vocabulary size
 vocabulary_size = 500000
+init_voc_size = vocabulary_size
 data, count, dictionary, reverse_dictionary = build_dataset(words, vocabulary_size)
 
 # reset vocabulary size if it was not reached
@@ -382,6 +394,7 @@ def embeddings_to_tsv(embeddings, path):
             f.write(reverse_dictionary[i].encode('utf8') + '\t' + '\t'.join(str(x) for x in vec) + '\n')
             i += 1
         print('vec count:', i)
+        print('label:', 'mod_a'+str(article_count)+'-w'+str(word_count)+'-v'+str(init_voc_size)+'-'+str(vocabulary_size)+'-dim'+str(embedding_size)+'-s'+str(i))
 
 embeddings_to_tsv(final_embeddings, logdir+'/embeddings.tsv')
 
