@@ -38,6 +38,8 @@ from functools import wraps
 
 csv.field_size_limit(sys.maxsize)
 
+data_dir = '/media/arne/E834D0A734D07A50/Users/arbi01/ML/data/'
+
 
 def fn_timer(function):
     @wraps(function)
@@ -155,7 +157,7 @@ def read_data_example():
 
 
 #words = read_data(maybe_download('text8.zip', 31344016))
-words = read_data_csv('/media/arne/E834D0A734D07A50/Users/arbi01/ML/data/documents_utf8_filtered_20pageviews.csv', 3000)
+words = read_data_csv(data_dir+'corpora/documents_utf8_filtered_20pageviews.csv', 3000)
 #words = read_data_example()
 print('data preprocessing finished')
 print('Data size %d' % len(words))
@@ -259,7 +261,7 @@ for num_skips, skip_window in [(2, 1), (4, 2)]:
 
 # In[7]:
 
-logdir = 'summaries/train_{:%Y-%m-%d_%H:%M:%S}'.format(datetime.datetime.now())
+logdir = data_dir+'summaries/train_{:%Y-%m-%d_%H:%M:%S}'.format(datetime.datetime.now())
 
 batch_size = 128
 embedding_size = 300  # Dimension of the embedding vector.
