@@ -205,12 +205,12 @@ def build_dataset(words, vocabulary_size):
     count = [['UNK', -1]]
     count.extend(collections.Counter(words).most_common(vocabulary_size - 1))
     dictionary = dict()
-    i = 1
+    #i = 1
     for word, c in count:
         # take only tokens which occure >1 time
-        if c > 1:
-            dictionary[word] = len(i)
-            i+=1
+        #if c > 1:
+        dictionary[word] = len(dictionary)
+        #    i+=1
     data = list()
     unk_count = 0
     for word in words:
@@ -406,17 +406,21 @@ final_embeddings = train()
 
 @fn_timer
 def embeddings_to_tsv(embeddings, path):
+    i = 0
     with open(path,'w') as f:
         size, dims = embeddings.shape
         f.write('{} {}'.format(size, dims) + '\n')
-        i = 0
         for vec in embeddings:
             f.write(reverse_dictionary[i].encode('utf8') + '\t' + '\t'.join(str(x) for x in vec) + '\n')
             i += 1
         print('vec count:', i)
         print('label:', 'mod_a'+str(article_count)+'-w'+str(word_count)+'-v'+str(init_voc_size)+'-'+str(vocabulary_size)+'-dim'+str(embedding_size)+'-s'+str(i))
+    return i
 
-embeddings_to_tsv(final_embeddings, logdir+'/embeddings.tsv')
+vec_count = embeddings_to_tsv(final_embeddings, logdir+'/embeddings.tsv')
+
+with open('embeddings_meta', 'w') as f:
+    json.dump({'filename':logdir+'/embeddings.tsv', 'label': 'mod_a'+str(article_count)+'-w'+str(word_count)+'-v'+str(init_voc_size)+'-'+str(vocabulary_size)+'-dim'+str(embedding_size)+'-s'+str(vec_count)},f)
 
 #with open('model.txt', 'w') as outfile:
 #    json.dump(final_embeddings, outfile)
