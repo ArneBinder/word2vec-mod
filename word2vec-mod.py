@@ -383,7 +383,7 @@ def embeddings_to_tsv(embeddings, path):
             i += 1
         print('vec count:', i)
 
-embeddings_to_tsv(final_embeddings, 'out.txt')
+embeddings_to_tsv(final_embeddings, logdir+'/embeddings.tsv')
 
 #with open('model.txt', 'w') as outfile:
 #    json.dump(final_embeddings, outfile)
