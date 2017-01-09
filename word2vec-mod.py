@@ -86,20 +86,32 @@ def read_data(filename):
         data = tf.compat.as_str(f.read(f.namelist()[0])).split()
     return data
 
-#pos_dict = dict()
+# initialize attributes to collect values for
+ling_stats = {key: dict() for key in ['pos_', 'shape_', 'dep_', 'tag_', 'ent_type_', 'ent_iob_']}
+
+#ling_stats['pos_'] = dict()
+# ling_stats['asda'] = dict()
 pos_blacklist = [u'SPACE', u'PUNCT', u'NUM',u'SPACE']
-def valid_token(token):
-    #pos_samples = pos_dict.get(token.pos_, [])
-    #if(token.lemma_ not in pos_samples):
-    #    pos_dict[token.pos_] = (pos_samples + [token.lemma_])[-5:]
+def process_token(token, plain_tokens=list()):
+
+    ## collect linguistic stats
+    for attr, types in ling_stats.items():
+        if not hasattr(token, attr):
+            print("ERROR. Attribute not found:", attr, 'Skip it.')
+            continue
+        ind = getattr(token, attr)
+        samples = types.get(ind, [])
+        if(token.string not in samples):
+            types[ind] = (samples + [[token.string, token.lemma_]])[-5:]
 
     # remove not-a-word tokens
     if(token.pos_ in pos_blacklist):
         return False
 
     # remove entities
-    if(token.ent_type != 0):
-        return False
+    #if(token.ent_type != 0):
+    #    return False
+    plain_tokens.append(token.lemma_)
     return True
 
 
@@ -108,7 +120,7 @@ def valid_token(token):
 def read_data_csv(filename, max_rows=100):
     print('parse', max_rows, 'articles')
     parser = English()
-    lemmata = list()
+    plain_tokens = list()
     with open(filename, 'rb') as csvfile:
         reader = csv.DictReader(csvfile, fieldnames=['article-id', 'content'])
         count = 0
@@ -124,33 +136,32 @@ def read_data_csv(filename, max_rows=100):
             parsedData = parser(content)
 
             for i, token in enumerate(parsedData):
-                if(valid_token(token)):
-                    lemmata.append(token.lemma_)
+                process_token(token, plain_tokens)
 
             count +=1
-    return lemmata
+    return plain_tokens
 
 def read_data_example():
-    text = u' Research Design and Standards Organization  The Research Design and Standards Organisation (RDSO) is an ISO 9001 research and development organisation under the Ministry of Railways of India, which functions as a technical adviser and consultant to the Railway Board, the Zonal Railways, the Railway Production Units, RITES and IRCON International in respect of design and standardisation of railway equipment and problems related to railway construction, operation and maintenance. History. To enforce standardisation and co-ordination between various railway systems in British India, the Indian Railway Conference Association (IRCA) was set up in 1903. It was followed by the establishment of the Central Standards Office (CSO) in 1930, for preparation of designs, standards and specifications. However, till independence in 1947, most of the designs and manufacture of railway equipments was entrusted to foreign consultants. After independence, a new organisation called Railway Testing and Research Centre (RTRC) was set up in 1952 at Lucknow, for undertaking intensive investigation of railway problems, providing basic criteria and new concepts for design purposes, for testing prototypes and generally assisting in finding solutions for specific problems. In 1957, the Central Standards Office (CSO) and the Railway Testing and Research Centre (RTRC) were integrated into a single unit named Research Designs and Standards Organisation (RDSO) under the Ministry of Railways with its headquarters at Manaknagar, Lucknow. The status of RDSO was changed from an ""Attached Office"" to a ""Zonal Railway"" on April 1, 2003, to give it greater flexibility and a boost to the research and development activities. Organisation. The RDSO is headed by a Director General who ranks with a General Manager of a Zonal Railway. The Director General is assisted by an Additional Director General and 23 Sr. Executive Directors and Executive Directors, who are in charge of the 27 directorates: Bridges and Structures, the Centre for Advanced Maintenance Techlogy (AMTECH), Carriage, Geotechnical Engineering, Testing, Track Design, Medical, EMU & Power Supply, Engine Development, Finance & Accounts, Telecommunication, Quality Assurance, Personnel, Works, Psycho-Technical, Research, Signal, Wagon Design, Electric Locomotive, Stores, Track Machines & Monitoring, Traction Installation, Energy Management, Traffic, Metallurgical & Chemical, Motive Power and Library & Publications. All the directorates except Defence Research are located in Lucknow. Projects. Development of a new crashworthy design of  4500 HP WDG4 locomotive incorporating new  technology to improve dynamic braking and attain  significant fuel savings. Development of Drivers’ Vigilance Telemetric Control  System which directly measures and analyses variations  in biometric parameters to determine the state of alertness  of the driver. Development of Train Collision Avoidance System(TCAS). Development of Computer Aided Drivers Aptitude test  equipment for screening high speed train drivers for  Rajdhani/Shatabdi Express trains to evaluate their reaction  time, form perception, vigilance and speed anticipation. Assessment of residual fatigue life of critical railway  components like rail, rail weld, wheels, cylinder head, OHE  mast, catenary wire, contact wire, wagon components, low  components, etc. to formulate remedial actions. Modification of specification of Electric Lifting Barrier to improve its strength and reliability Design and development of modern fault tolerant, fail-safe, maintainer friendly Electronic Interlocking system Development of 4500 HP Hotel Load Locomotive to provide clean and noise free power supply to coaches from locomotive to eliminate the existing generator car of Garib Rath express trains. Field trials conducted for electric locomotive hauling Rajdhani/Shatabdi express trains with Head On Generation (HOG) system to provide clean and noise free power supply to end on coaches. Development of WiMAX technology to provide internet access to the passengers in running trains. Design and Development of Ballastless Track with indigenous fastening system (BLT-IFS). Major Achievements. Development of Pre-stressed concrete sleeper and allied components along with Source Development.  '
+    #text = u' Research Design and Standards Organization  The Research Design and Standards Organisation (RDSO) is an ISO 9001 research and development organisation under the Ministry of Railways of India, which functions as a technical adviser and consultant to the Railway Board, the Zonal Railways, the Railway Production Units, RITES and IRCON International in respect of design and standardisation of railway equipment and problems related to railway construction, operation and maintenance. History. To enforce standardisation and co-ordination between various railway systems in British India, the Indian Railway Conference Association (IRCA) was set up in 1903. It was followed by the establishment of the Central Standards Office (CSO) in 1930, for preparation of designs, standards and specifications. However, till independence in 1947, most of the designs and manufacture of railway equipments was entrusted to foreign consultants. After independence, a new organisation called Railway Testing and Research Centre (RTRC) was set up in 1952 at Lucknow, for undertaking intensive investigation of railway problems, providing basic criteria and new concepts for design purposes, for testing prototypes and generally assisting in finding solutions for specific problems. In 1957, the Central Standards Office (CSO) and the Railway Testing and Research Centre (RTRC) were integrated into a single unit named Research Designs and Standards Organisation (RDSO) under the Ministry of Railways with its headquarters at Manaknagar, Lucknow. The status of RDSO was changed from an ""Attached Office"" to a ""Zonal Railway"" on April 1, 2003, to give it greater flexibility and a boost to the research and development activities. Organisation. The RDSO is headed by a Director General who ranks with a General Manager of a Zonal Railway. The Director General is assisted by an Additional Director General and 23 Sr. Executive Directors and Executive Directors, who are in charge of the 27 directorates: Bridges and Structures, the Centre for Advanced Maintenance Techlogy (AMTECH), Carriage, Geotechnical Engineering, Testing, Track Design, Medical, EMU & Power Supply, Engine Development, Finance & Accounts, Telecommunication, Quality Assurance, Personnel, Works, Psycho-Technical, Research, Signal, Wagon Design, Electric Locomotive, Stores, Track Machines & Monitoring, Traction Installation, Energy Management, Traffic, Metallurgical & Chemical, Motive Power and Library & Publications. All the directorates except Defence Research are located in Lucknow. Projects. Development of a new crashworthy design of  4500 HP WDG4 locomotive incorporating new  technology to improve dynamic braking and attain  significant fuel savings. Development of Drivers’ Vigilance Telemetric Control  System which directly measures and analyses variations  in biometric parameters to determine the state of alertness  of the driver. Development of Train Collision Avoidance System(TCAS). Development of Computer Aided Drivers Aptitude test  equipment for screening high speed train drivers for  Rajdhani/Shatabdi Express trains to evaluate their reaction  time, form perception, vigilance and speed anticipation. Assessment of residual fatigue life of critical railway  components like rail, rail weld, wheels, cylinder head, OHE  mast, catenary wire, contact wire, wagon components, low  components, etc. to formulate remedial actions. Modification of specification of Electric Lifting Barrier to improve its strength and reliability Design and development of modern fault tolerant, fail-safe, maintainer friendly Electronic Interlocking system Development of 4500 HP Hotel Load Locomotive to provide clean and noise free power supply to coaches from locomotive to eliminate the existing generator car of Garib Rath express trains. Field trials conducted for electric locomotive hauling Rajdhani/Shatabdi express trains with Head On Generation (HOG) system to provide clean and noise free power supply to end on coaches. Development of WiMAX technology to provide internet access to the passengers in running trains. Design and Development of Ballastless Track with indigenous fastening system (BLT-IFS). Major Achievements. Development of Pre-stressed concrete sleeper and allied components along with Source Development.  '
+    text = u' The Research Design and Standards Organisation (RDSO) is an ISO 9001 research and development organisation under the Ministry of Railways of India, which functions as a technical adviser and consultant to the Railway Board, the Zonal Railways, the Railway Production Units, RITES and IRCON International in respect of design and standardisation of railway equipment and problems related to railway construction, operation and maintenance. History. To enforce standardisation and co-ordination between various railway systems in British India, the Indian Railway Conference Association (IRCA) was set up in 1903. It was followed by the establishment of the Central Standards Office (CSO) in 1930, for preparation of designs, standards and specifications. However, till independence in 1947, most of the designs and manufacture of railway equipments was entrusted to foreign consultants. After independence, a new organisation called Railway Testing and Research Centre (RTRC) was set up in 1952 at Lucknow, for undertaking intensive investigation of railway problems, providing basic criteria and new concepts for design purposes, for testing prototypes and generally assisting in finding solutions for specific problems. In 1957, the Central Standards Office (CSO) and the Railway Testing and Research Centre (RTRC) were integrated into a single unit named Research Designs and Standards Organisation (RDSO) under the Ministry of Railways with its headquarters at Manaknagar, Lucknow. The status of RDSO was changed from an ""Attached Office"" to a ""Zonal Railway"" on April 1, 2003, to give it greater flexibility and a boost to the research and development activities. Organisation. The RDSO is headed by a Director General who ranks with a General Manager of a Zonal Railway. The Director General is assisted by an Additional Director General and 23 Sr. Executive Directors and Executive Directors, who are in charge of the 27 directorates: Bridges and Structures, the Centre for Advanced Maintenance Techlogy (AMTECH), Carriage, Geotechnical Engineering, Testing, Track Design, Medical, EMU & Power Supply, Engine Development, Finance & Accounts, Telecommunication, Quality Assurance, Personnel, Works, Psycho-Technical, Research, Signal, Wagon Design, Electric Locomotive, Stores, Track Machines & Monitoring, Traction Installation, Energy Management, Traffic, Metallurgical & Chemical, Motive Power and Library & Publications. All the directorates except Defence Research are located in Lucknow. Projects. Development of a new crashworthy design of  4500 HP WDG4 locomotive incorporating new  technology to improve dynamic braking and attain  significant fuel savings. Development of Drivers’ Vigilance Telemetric Control  System which directly measures and analyses variations  in biometric parameters to determine the state of alertness  of the driver. Development of Train Collision Avoidance System(TCAS). Development of Computer Aided Drivers Aptitude test  equipment for screening high speed train drivers for  Rajdhani/Shatabdi Express trains to evaluate their reaction  time, form perception, vigilance and speed anticipation. Assessment of residual fatigue life of critical railway  components like rail, rail weld, wheels, cylinder head, OHE  mast, catenary wire, contact wire, wagon components, low  components, etc. to formulate remedial actions. Modification of specification of Electric Lifting Barrier to improve its strength and reliability Design and development of modern fault tolerant, fail-safe, maintainer friendly Electronic Interlocking system Development of 4500 HP Hotel Load Locomotive to provide clean and noise free power supply to coaches from locomotive to eliminate the existing generator car of Garib Rath express trains. Field trials conducted for electric locomotive hauling Rajdhani/Shatabdi express trains with Head On Generation (HOG) system to provide clean and noise free power supply to end on coaches. Development of WiMAX technology to provide internet access to the passengers in running trains. Design and Development of Ballastless Track with indigenous fastening system (BLT-IFS). Major Achievements. Development of Pre-stressed concrete sleeper and allied components along with Source Development.  '
     parser = English()
-    lemmata = list()
+    plain_tokens = list()
     parsedData = parser(text)
     for i, token in enumerate(parsedData):
-        if (valid_token(token)):
-            lemmata.append(token.lemma_)
-    return lemmata
+        process_token(token, plain_tokens)
+    return plain_tokens
 
 #print('token count:', len(words_mod))
 
 
 #words = read_data(maybe_download('text8.zip', 31344016))
-words = read_data_csv('/media/arne/E834D0A734D07A50/Users/arbi01/ML/data/documents_utf8_filtered_20pageviews.csv', 10000)
+words = read_data_csv('/media/arne/E834D0A734D07A50/Users/arbi01/ML/data/documents_utf8_filtered_20pageviews.csv', 3000)
 #words = read_data_example()
 print('data preprocessing finished')
 print('Data size %d' % len(words))
 
-#with open('pos_dict.txt', 'w') as outfile:
-#    json.dump(pos_dict, outfile)
+with open('ling_stats.txt', 'w') as outfile:
+    json.dump(ling_stats, outfile)
 
 
 #exit()
@@ -314,7 +325,7 @@ with graph.as_default(), tf.device('/cpu:0'):
 @fn_timer
 def train():
     #num_steps = 100001
-    num_steps = 100000
+    num_steps = 200000
     interval_avg = 50   # average loss every num_steps/interval_avg steps
     interval_sav = 10   # save model every num_steps/interval_sav steps
 
