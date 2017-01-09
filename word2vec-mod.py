@@ -40,7 +40,7 @@ import operator
 csv.field_size_limit(sys.maxsize)
 
 data_dir = '/media/arne/E834D0A734D07A50/Users/arbi01/ML/data/'
-article_count = 300
+article_count = 3000
 
 
 def fn_timer(function):
@@ -99,15 +99,15 @@ pos_blacklist = [u'SPACE', u'PUNCT', u'NUM']
 def process_token(token, plain_tokens=list()):
 
     ## collect linguistic stats
-    for attr, types in ling_stats.items():
-        if not hasattr(token, attr):
-            print("ERROR. Attribute not found:", attr, 'Skip it.')
-            continue
-        value = getattr(token, attr)
-        types[value] = types.get(value, [])
-        #if(token.string not in types[value]):
-            #types[value] = (types[value] + [token.string])[-5:]
-        types[value].append(token.string)
+    #for attr, types in ling_stats.items():
+    #    if not hasattr(token, attr):
+    #        print("ERROR. Attribute not found:", attr, 'Skip it.')
+    #        continue
+    #    value = getattr(token, attr)
+    #    types[value] = types.get(value, [])
+    #    #if(token.string not in types[value]):
+    #        #types[value] = (types[value] + [token.string])[-5:]
+    #    types[value].append(token.string)
 
     # remove not-a-word tokens
     if token.pos_ in pos_blacklist:
@@ -189,11 +189,11 @@ for type, values in ling_stats.items():
         ling_stats_counted.append({'categorie': type, 'value': value, 'types': len(d), 'tokens': len(samples), 'l': l, 'q': len(d)/float(len(samples))})
 
 
-with open('ling_stats.txt', 'w') as outfile:
-    json.dump(ling_stats_counted, outfile, indent=4, separators=(',', ': '))
+#with open('ling_stats.txt', 'w') as outfile:
+#    json.dump(ling_stats_counted, outfile, indent=4, separators=(',', ': '))
 
 
-exit()
+#exit()
 
 # Build the dictionary and replace rare words with UNK token.
 
@@ -205,8 +205,12 @@ def build_dataset(words, vocabulary_size):
     count = [['UNK', -1]]
     count.extend(collections.Counter(words).most_common(vocabulary_size - 1))
     dictionary = dict()
-    for word, _ in count:
-        dictionary[word] = len(dictionary)
+    i = 1
+    for word, c in count:
+        # take only tokens which occure >1 time
+        if c > 1:
+            dictionary[word] = len(i)
+            i+=1
     data = list()
     unk_count = 0
     for word in words:
