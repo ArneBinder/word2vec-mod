@@ -174,7 +174,7 @@ word_count = len(words)
 print('data preprocessing finished')
 print('Data size %d' % len(words))
 
-ling_stats_counted = dict()
+ling_stats_counted = list()
 for type, values in ling_stats.items():
     #ling_stats_counted[type] = dict()
     for value, samples in values.items():
@@ -186,7 +186,7 @@ for type, values in ling_stats.items():
 
         #sorted_x = sorted(d.items(), key=operator.itemgetter(1), reverse=True)
         l = [item for sublist in sorted(d.items(), key=operator.itemgetter(1), reverse=True) for item in sublist][:20]
-        ling_stats_counted[type+value] = {'types': len(d), 'tokens': len(samples), 'l': l, 'q': len(d)/float(len(samples))}
+        ling_stats_counted.append({'categorie': type, 'value': value, 'types': len(d), 'tokens': len(samples), 'l': l, 'q': len(d)/float(len(samples))})
 
 
 with open('ling_stats.txt', 'w') as outfile:
