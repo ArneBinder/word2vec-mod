@@ -35,11 +35,12 @@ import sys
 import time
 import datetime
 from functools import wraps
+import operator
 
 csv.field_size_limit(sys.maxsize)
 
 data_dir = '/media/arne/E834D0A734D07A50/Users/arbi01/ML/data/'
-article_count = 3000
+article_count = 300
 
 
 def fn_timer(function):
@@ -102,11 +103,11 @@ def process_token(token, plain_tokens=list()):
         if not hasattr(token, attr):
             print("ERROR. Attribute not found:", attr, 'Skip it.')
             continue
-        ind = getattr(token, attr)
-        samples = types.get(ind, [])
-        if(token.string not in samples):
-            #types[ind] = (samples + [token.string])[-5:]
-            types[ind].append(token.string)
+        value = getattr(token, attr)
+        types[value] = types.get(value, [])
+        #if(token.string not in types[value]):
+            #types[value] = (types[value] + [token.string])[-5:]
+        types[value].append(token.string)
 
     # remove not-a-word tokens
     if token.pos_ in pos_blacklist:
@@ -173,8 +174,23 @@ word_count = len(words)
 print('data preprocessing finished')
 print('Data size %d' % len(words))
 
+ling_stats_counted = dict()
+for type, values in ling_stats.items():
+    #ling_stats_counted[type] = dict()
+    for value, samples in values.items():
+        #ling_stats_counted[type][value] = dict()
+        d = dict()
+        for sample in samples:
+            count = d.get(sample, 0)
+            d[sample] = count + 1
+
+        #sorted_x = sorted(d.items(), key=operator.itemgetter(1), reverse=True)
+        l = [item for sublist in sorted(d.items(), key=operator.itemgetter(1), reverse=True) for item in sublist][:20]
+        ling_stats_counted[type+value] = {'types': len(d), 'tokens': len(samples), 'l': l, 'q': len(d)/float(len(samples))}
+
+
 with open('ling_stats.txt', 'w') as outfile:
-    json.dump(ling_stats, outfile)
+    json.dump(ling_stats_counted, outfile, indent=4, separators=(',', ': '))
 
 
 exit()
@@ -340,8 +356,8 @@ with graph.as_default(), tf.device('/cpu:0'):
 def train():
     #num_steps = 100001
     num_steps = 200000
-    interval_avg = 50   # average loss every num_steps/interval_avg steps
-    interval_sav = 10   # save model every num_steps/interval_sav steps
+    interval_avg = 50   # average the loss every num_steps/interval_avg steps
+    interval_sav = 10   # save the model every num_steps/interval_sav steps
 
     with tf.Session(graph=graph) as session:
         #tf.initialize_all_variables().run() # for older versions of Tensorflow
