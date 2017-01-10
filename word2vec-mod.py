@@ -110,16 +110,16 @@ def process_token(token, plain_tokens=list()):
     #    types[value].append(token.string)
 
     # remove not-a-word tokens
-    if token.pos_ in pos_blacklist:
-        plain_tokens.append(token.pos_)
-        return False
+    #if token.pos_ in pos_blacklist:
+    #    plain_tokens.append(token.pos_)
+    #    return False
 
-    if token.ent_iob_ == 'B':
-        plain_tokens.append(token.ent_type_)
-        return True
+    #if token.ent_iob_ == 'B':
+    #    plain_tokens.append(token.ent_type_)
+    #    return True
 
-    if token.ent_iob_ == 'I':
-        return False
+    #if token.ent_iob_ == 'I':
+    #    return False
 
     # remove entities
     #if(token.ent_type != 0):
@@ -355,12 +355,12 @@ with graph.as_default(), tf.device('/cpu:0'):
 
     saver = tf.train.Saver()
 
-
+num_steps = 1000000
 # In[9]:
 @fn_timer
 def train():
     #num_steps = 100001
-    num_steps = 1000000
+    #num_steps = 1000000
     interval_avg = 50   # average the loss every num_steps/interval_avg steps
     interval_sav = 10   # save the model every num_steps/interval_sav steps
 
@@ -403,6 +403,7 @@ def train():
 
         return normalized_embeddings.eval()
 
+
 final_embeddings = train()
 
 @fn_timer
@@ -421,7 +422,7 @@ def embeddings_to_tsv(embeddings, path):
 vec_count = embeddings_to_tsv(final_embeddings, logdir+'/embeddings.tsv')
 
 with open('embeddings_meta', 'w') as f:
-    json.dump({'filename':logdir+'/embeddings.tsv', 'label': 'mod_a'+str(article_count)+'-w'+str(word_count)+'-v'+str(init_voc_size)+'-'+str(vocabulary_size)+'-dim'+str(embedding_size)+'-s'+str(vec_count)},f)
+    json.dump({'filename':logdir+'/embeddings.tsv', 'label': 'mod_a'+str(article_count)+'-w'+str(word_count)+'-v'+str(init_voc_size)+'-'+str(vocabulary_size)+'-dim'+str(embedding_size)+'-s'+str(num_steps)},f)
 
 #with open('model.txt', 'w') as outfile:
 #    json.dump(final_embeddings, outfile)
