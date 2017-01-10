@@ -40,7 +40,7 @@ import operator
 csv.field_size_limit(sys.maxsize)
 
 data_dir = '/media/arne/E834D0A734D07A50/Users/arbi01/ML/data/'
-article_count = 3000
+article_count = 10000
 
 
 def fn_timer(function):
@@ -111,6 +111,7 @@ def process_token(token, plain_tokens=list()):
 
     # remove not-a-word tokens
     if token.pos_ in pos_blacklist:
+        plain_tokens.append(token.pos_)
         return False
 
     if token.ent_iob_ == 'B':
@@ -359,7 +360,7 @@ with graph.as_default(), tf.device('/cpu:0'):
 @fn_timer
 def train():
     #num_steps = 100001
-    num_steps = 200000
+    num_steps = 1000000
     interval_avg = 50   # average the loss every num_steps/interval_avg steps
     interval_sav = 10   # save the model every num_steps/interval_sav steps
 
