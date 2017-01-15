@@ -39,7 +39,7 @@ import operator
 
 csv.field_size_limit(sys.maxsize)
 
-data_dir = '/media/arne/E834D0A734D07A50/Users/arbi01/ML/data/'
+data_dir = '/media/arne/DATA/DEVELOPING/ML/data/'
 article_count = 10000
 
 
